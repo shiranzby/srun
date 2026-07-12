@@ -1,0 +1,24 @@
+# =============================================================================
+#  深澜校园网 PPPoE (有线) 配置文件
+# =============================================================================
+
+auth:
+  username: "24046224@stu.nchu.edu.cn"
+  password: "shy0618123."
+  server: "10.1.88.4"
+
+pppoe:
+  connection_name: "srun-pppoe"
+
+retry:
+  max_retries: 5
+  first_cooldown: 1
+  max_backoff: 30
+
+heartbeat:
+  enabled: false                # PPPoE 会话保活, Windows 下通常不需要
+  port: 3338
+  interval: 50
+
+log:
+  level: "DEBUG"

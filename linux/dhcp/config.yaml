@@ -1,0 +1,34 @@
+# =============================================================================
+#  深澜校园网 DHCP Portal 无线认证 — Linux/OpenWrt 配置
+# =============================================================================
+
+auth:
+  username: "24046224@stu.nchu.edu.cn"
+  password: "shy0618123."
+  server: "10.1.88.4"
+
+dhcp:
+  ac_id: "1"
+  enc: "srun_bx1"
+  n: "200"
+  type: "1"
+  os: "Linux"
+  name: "linux"
+  info_prefix: "SRBX1"
+  double_stack: false
+  timeout: 5
+  user_agent: "Mozilla/5.0 (X11; Linux x86_64) Firefox/89.0"
+
+guardian:
+  enabled: true
+  duration: 3    # 检测周期(秒)
+
+retry:
+  max_retries: 5
+  first_delay: 1
+  max_delay: 30
+
+log:
+  file: "/var/log/srun_dhcp.log"
+  max_lines: 5000
+  keep_lines: 1000

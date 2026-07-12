@@ -1,0 +1,36 @@
+# =============================================================================
+#  深澜校园网 DHCP Portal (无线) 配置文件
+# =============================================================================
+
+auth:
+  username: "25172230@stu.nchu.edu.cn"
+  password: "aA123456789"
+  server: "10.1.88.4"
+
+
+
+dhcp:
+  ac_id: "1"
+  enc: "srun_bx1"
+  n: "200"
+  type: "1"
+  os: "Windows 10"
+  name: "windows"
+  info_prefix: "SRBX1"
+  double_stack: false
+  https: false
+  skip_cert_verify: false
+  timeout: 5
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/89.0"
+
+guardian:
+  enabled: true
+  duration: 3
+
+retry:
+  max_retries: 5
+  first_cooldown: 1
+  max_backoff: 30
+
+log:
+  level: "DEBUG"

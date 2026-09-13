@@ -36,7 +36,8 @@ ipconfig                           # IP 地址
 | 症状 | 可能原因 | 优先级 |
 |------|---------|--------|
 | pppd 退出 -9 | NSS 模块冲突 / 进程竞争 | P0 |
-| Modem hangup | BRAS 僵尸会话 / 时间错误 | P0 |
+| Modem hangup | BRAS 僵尸会话 / E2901 被踢后 BRAS 短暂拉黑 | P0 |
+| E2901 (Third party -1) Line fault | 深澜服务器侧拒绝：账号状态异常 / 端口绑定校验失败 / 策略变更 | P0 |
 | Error 691 | 密码错误 / 时间戳过期 | P0 |
 | 连接成功但 ping 不通 | DNS / 防火墙未配置 | P1 |
 | 自行断开 | daemon 误杀 / pppd LCP 超时 | P1 |
@@ -45,6 +46,40 @@ ipconfig                           # IP 地址
 ---
 
 ## 🔧 已知问题与修复
+
+### P0: E2901 (Third party -1) Line fault — 深澜服务器侧拒绝（2026-09-13 实案）
+
+**现象**：之前能正常连接，突然连不上了。日志特征：
+
+```
+rcvd [CHAP Challenge ... name = "BRAS-CR16010-F"]
+sent [CHAP Response ... name = "{S4}139a8\r\n363834383a363638@stu.nchu.edu.cn"]
+rcvd [CHAP Failure id=0x1 "E2901: (Third party -1)Line fault, your authentication request is rejected."]
+CHAP authentication failed
+→ 紧接着的下一次重试：LCP ConfReq 一发出就 Modem hangup（BRAS 认证失败后短暂拉黑）
+```
+
+**根因分析流程**（已在实案中验证）：
+
+1. **确认不是密码问题**：E2901 ≠ 691。密码错误是另一种报错；E2901 表示请求已到达 BRAS 并转发给第三方（深澜服务器），是**深澜侧主动拒绝**。
+2. **验证 S4 编码无损**：把 CHAP Response 里的用户名解码，
+   `{S4}<hash>\r\n<hex>` 中 hex 每字节减 4 还原账号。实案解码出 `24046224@stu.nchu.edu.cn` 完整无损。
+3. **验证时间戳**：`hash(16进制) - sum(ord(账号各字符))` = 当天秒数。
+   实案 `0x139a8(80296) - 402 = 79894s = 22:11:34`，与拨号时刻吻合 → 时间无误。
+4. **结论**：请求格式完全正确，问题在服务器侧。
+
+**E2901 常见服务器侧原因**（按概率排序）：
+1. 账号在深澜后台状态异常（异常下线被标记、欠费、停机）
+2. 深澜开启了端口/线路绑定校验，且绑定关系变更（如 BRAS 端口调整）
+3. 学校当日变更了认证策略（如关闭该 VLAN 的 PPPoE 认证、启用 MAC 绑定）
+4. 深澜与 BRAS 对接临时故障（第三方接口返回 -1）
+
+**排查动作**：
+- 用**另一台设备连校园网**打开 `http://<srun服务器>/` 网页认证 → 能登上 = 账号正常、是 PPPoE 线路/端口被改策略；登不上 = 账号被标记，找网络中心
+- 同端口试 DHCP：`udhcpc -i <iface> -n -q -t 4 -T 3` → 无 lease 说明该口当前仅 PPPoE VLAN（或被切走）
+- 全部失败且网页认证也异常 → 等待 1-2 小时重试（临时故障），仍不行报修网络中心
+
+**脚本侧注意**：E2901 后紧跟的重试会立刻 Modem hangup（BRAS 拉黑），重试间隔应 ≥30s，避免频繁触发。
 
 ### P0: 嵌套 init stop 死锁（v7.0 原版）
 

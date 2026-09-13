@@ -258,6 +258,31 @@ python3 srun.py   # 菜单 3 重新配置账号密码
 # 菜单 8 手动设置时间（格式: YYYYMMDDHHMMSS）
 ```
 
+### E2901: (Third party -1) Line fault —— 服务器侧拒绝
+**特征**：之前能连上，突然连不上；日志里 CHAP 认证被明确拒绝：
+```
+rcvd [CHAP Failure id=0x1 "E2901: (Third party -1)Line fault, your authentication request is rejected."]
+```
+这不是脚本/密码问题——请求已到达 BRAS 并转发给深澜服务器，是**深澜侧主动拒绝**。
+紧跟的下一次重试会立刻 Modem hangup，那是 BRAS 认证失败后的短暂拉黑，属于连锁症状。
+
+**原因**（按概率）：
+1. 账号在深澜后台状态异常（异常下线被标记 / 欠费 / 停机）
+2. 学校开启了端口/线路绑定且绑定关系变更
+3. 学校当日变更了认证策略（关闭该端口 PPPoE 认证 / 启用 MAC 绑定）
+4. 深澜与 BRAS 对接临时故障
+
+**排查**：
+```bash
+# 1. 确认请求格式没问题：看 CHAP Response 里的用户名（{S4}hex 部分每字节减 4 = 账号）
+logread | grep "CHAP Response" | tail -2
+
+# 2. 用另一台设备连校园网，打开网页认证页面登录
+#    能登上 → 账号正常，是 PPPoE 线路/端口侧被改策略
+#    登不上 → 账号被标记，联系网络中心
+```
+若为临时故障，等 1-2 小时重试；仍失败建议报修网络中心并说明 "E2901 Third party -1"。
+
 ### 路由器断电重启后连不上
 **原因**：BRAS 侧残留僵尸会话。pppd 发起 LCP 协商后 BRAS 不响应（Modem hangup）。
 **解决**：
